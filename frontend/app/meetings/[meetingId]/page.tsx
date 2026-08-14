@@ -1,23 +1,29 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, Clock, Download, Share2, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Download, FileText as FilePdfIcon, Share2, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { usePlayerSync } from '@/providers/PlayerSyncContext';
+import { useToast } from '@/providers/ToastContext';
+import { exportMeetingToPdf } from '@/lib/exportPdf';
 import AppShell from '@/components/layout/AppShell';
 import Notepad from '@/components/notepad/Notepad';
 import TranscriptPanel from '@/components/transcript/TranscriptPanel';
 import MediaPlayer from '@/components/player/MediaPlayer';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 export default function MeetingWorkspacePage() {
   const params = useParams();
   const router = useRouter();
   const meetingId = Number(params.meetingId);
+  const { showToast } = useToast();
 
   const { setSegments } = usePlayerSync();
+
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   // Queries
   const { data: meeting, isLoading: isLoadingMeeting } = useQuery({
@@ -63,10 +69,13 @@ export default function MeetingWorkspacePage() {
     }
   }, [transcript, setSegments]);
 
-  const handleDeleteMeeting = async () => {
-    if (confirm('Are you sure you want to delete this meeting?')) {
+  const handleConfirmDelete = async () => {
+    try {
       await api.deleteMeeting(meetingId);
+      showToast('Meeting deleted', 'Returned to Meetings Library');
       router.push('/meetings');
+    } catch (err: any) {
+      showToast('Deletion failed', err.message || 'Could not delete meeting', 'error');
     }
   };
 
@@ -186,12 +195,21 @@ export default function MeetingWorkspacePage() {
             {/* Header Actions */}
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
+                onClick={() => exportMeetingToPdf(meeting, summary || null, actionItems || [], transcript || null)}
+                title="Export PDF Document"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7C4DFF] hover:bg-[#6F3FF0] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>PDF Document</span>
+              </button>
+
+              <button
                 onClick={() => handleExportText('md')}
                 title="Export Markdown"
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Export MD</span>
+                <span>Markdown</span>
               </button>
 
               <button
@@ -204,7 +222,7 @@ export default function MeetingWorkspacePage() {
               </button>
 
               <button
-                onClick={handleDeleteMeeting}
+                onClick={() => setIsConfirmDeleteOpen(true)}
                 title="Delete Meeting"
                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
               >
@@ -248,6 +266,17 @@ export default function MeetingWorkspacePage() {
             durationSeconds={meeting.media_duration_seconds || meeting.duration_seconds}
           />
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {isConfirmDeleteOpen && (
+          <ConfirmDialog
+            title="Delete Meeting"
+            description={`Are you sure you want to delete "${meeting.title}"? All associated transcripts, summaries, topics, and action items will be permanently removed.`}
+            confirmLabel="Delete Meeting"
+            onConfirm={handleConfirmDelete}
+            onClose={() => setIsConfirmDeleteOpen(false)}
+          />
+        )}
       </AppShell>
     </div>
   );

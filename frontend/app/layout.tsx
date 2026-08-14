@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import QueryProvider from '@/providers/QueryProvider';
+import { ToastProvider } from '@/providers/ToastContext';
 import { PlayerSyncProvider } from '@/providers/PlayerSyncContext';
 
 export const metadata: Metadata = {
@@ -17,9 +18,11 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased text-gray-900 bg-[#F7F7FA] min-h-screen">
         <QueryProvider>
-          <PlayerSyncProvider>
-            {children}
-          </PlayerSyncProvider>
+          <ToastProvider>
+            <PlayerSyncProvider>
+              {children}
+            </PlayerSyncProvider>
+          </ToastProvider>
         </QueryProvider>
       </body>
     </html>

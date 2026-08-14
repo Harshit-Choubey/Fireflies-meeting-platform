@@ -7,14 +7,20 @@ import { api } from '@/lib/api';
 import MeetingRow from './MeetingRow';
 import MeetingFilters from './MeetingFilters';
 import MeetingFormModal from './MeetingFormModal';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import { useToast } from '@/providers/ToastContext';
 
 export default function MeetingList() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [participantFilter, setParticipantFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Confirm dialog state
+  const [deleteMeetingId, setDeleteMeetingId] = useState<number | null>(null);
 
   // Fetch meetings with filters
   const {
@@ -42,12 +48,17 @@ export default function MeetingList() {
     mutationFn: (id: number) => api.deleteMeeting(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      showToast('Meeting deleted', 'Meeting and associated intelligence removed successfully.');
+    },
+    onError: (err: any) => {
+      showToast('Deletion failed', err.message || 'Could not delete meeting', 'error');
     },
   });
 
-  const handleDeleteMeeting = (id: number) => {
-    if (confirm('Are you sure you want to delete this meeting? All associated transcripts, summaries, and action items will be permanently removed.')) {
-      deleteMutation.mutate(id);
+  const handleConfirmDelete = () => {
+    if (deleteMeetingId !== null) {
+      deleteMutation.mutate(deleteMeetingId);
+      setDeleteMeetingId(null);
     }
   };
 
@@ -159,19 +170,31 @@ export default function MeetingList() {
             <MeetingRow
               key={meeting.id}
               meeting={meeting}
-              onDelete={handleDeleteMeeting}
+              onDelete={(id) => setDeleteMeetingId(id)}
             />
           ))}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Create Modal */}
       {isCreateModalOpen && (
         <MeetingFormModal
           onClose={() => setIsCreateModalOpen(false)}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
+            showToast('Meeting created', 'New meeting intelligence created successfully.');
           }}
+        />
+      )}
+
+      {/* Confirm Delete Dialog */}
+      {deleteMeetingId !== null && (
+        <ConfirmDialog
+          title="Delete Meeting"
+          description="Are you sure you want to delete this meeting? All associated transcripts, summaries, action items, and decisions will be permanently deleted."
+          confirmLabel="Delete Meeting"
+          onConfirm={handleConfirmDelete}
+          onClose={() => setDeleteMeetingId(null)}
         />
       )}
     </div>
