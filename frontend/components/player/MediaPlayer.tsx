@@ -49,6 +49,15 @@ export default function MediaPlayer({ mediaUrl, durationSeconds }: MediaPlayerPr
     }
   };
 
+  const [playbackRate, setPlaybackRate] = React.useState(1);
+
+  const changeSpeed = (rate: number) => {
+    setPlaybackRate(rate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  };
+
   return (
     <div className="bg-[#10072F] text-white px-4 py-3 border-t border-white/10 flex flex-col sm:flex-row items-center gap-4 flex-shrink-0 z-30 shadow-2xl">
       {/* HTML5 Native Audio Element */}
@@ -112,8 +121,25 @@ export default function MediaPlayer({ mediaUrl, durationSeconds }: MediaPlayerPr
         </span>
       </div>
 
-      {/* Volume toggle */}
-      <div className="flex items-center gap-2 flex-shrink-0 hidden sm:flex">
+      {/* Speed Selector & Volume toggle */}
+      <div className="flex items-center gap-3 flex-shrink-0 hidden sm:flex">
+        {/* Playback speed multiplier */}
+        <div className="flex items-center bg-white/5 p-1 rounded-lg border border-white/10 text-xs font-mono">
+          {[1, 1.25, 1.5, 2].map((rate) => (
+            <button
+              key={rate}
+              onClick={() => changeSpeed(rate)}
+              className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
+                playbackRate === rate
+                  ? 'bg-[#7C4DFF] text-white font-bold shadow-xs'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {rate}x
+            </button>
+          ))}
+        </div>
+
         <button
           onClick={toggleMute}
           className="p-1.5 text-gray-400 hover:text-white transition-colors"

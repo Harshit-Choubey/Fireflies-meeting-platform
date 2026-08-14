@@ -14,14 +14,22 @@ interface TranscriptPanelProps {
 export default function TranscriptPanel({ segments, isLoading }: TranscriptPanelProps) {
   const { activeSegmentId } = usePlayerSync();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpeaker, setSelectedSpeaker] = useState('ALL');
 
-  // Filter segments by search query
-  const filteredSegments = searchQuery.trim()
-    ? segments.filter((s) =>
-        s.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.speaker_label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : segments;
+  // Extract unique speaker list
+  const speakers = Array.from(new Set(segments.map((s) => s.speaker_label))).sort();
+
+  // Filter segments by search query and speaker
+  const filteredSegments = segments.filter((s) => {
+    const matchesQuery =
+      !searchQuery.trim() ||
+      s.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.speaker_label.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesSpeaker = selectedSpeaker === 'ALL' || s.speaker_label === selectedSpeaker;
+
+    return matchesQuery && matchesSpeaker;
+  });
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl flex flex-col h-full overflow-hidden shadow-xs">
@@ -33,28 +41,44 @@ export default function TranscriptPanel({ segments, isLoading }: TranscriptPanel
             <h3 className="text-sm font-bold text-gray-900">Interactive Transcript</h3>
           </div>
           <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-            {segments.length} segments
+            {filteredSegments.length} of {segments.length} segments
           </span>
         </div>
 
-        {/* Local Transcript Search */}
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search within transcript..."
-            className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#7C4DFF] focus:outline-hidden transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+        {/* Local Transcript Search & Speaker Filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search within transcript..."
+              className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#7C4DFF] focus:outline-hidden transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Speaker Filter Dropdown */}
+          <select
+            value={selectedSpeaker}
+            onChange={(e) => setSelectedSpeaker(e.target.value)}
+            className="py-1.5 px-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 font-medium focus:bg-white focus:border-[#7C4DFF] focus:outline-hidden transition-all"
+          >
+            <option value="ALL">All Speakers</option>
+            {speakers.map((speaker) => (
+              <option key={speaker} value={speaker}>
+                {speaker}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
