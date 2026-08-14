@@ -1,13 +1,8 @@
 'use client';
 
 import React from 'react';
-import AppShell from '@/components/layout/AppShell';
-import MeetingList from '@/components/meetings/MeetingList';
+import LandingPage from './landing/page';
 
-export default function HomePage() {
-  return (
-    <AppShell>
-      <MeetingList />
-    </AppShell>
-  );
+export default function Home() {
+  return <LandingPage />;
 }
